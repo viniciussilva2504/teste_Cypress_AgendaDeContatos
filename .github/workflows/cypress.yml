@@ -1,46 +1,56 @@
 name: Cypress E2E Tests
 
+# Default branch is exercicio-cypress (there is no main branch today).
+# main is included so the workflow still runs if that branch is added later.
 on:
   push:
-    branches: [main, master]
+    branches: [exercicio-cypress, main]
   pull_request:
-    branches: [main, master]
+    branches: [exercicio-cypress, main]
+  workflow_dispatch:
 
 jobs:
   cypress-run:
-    runs-on: ubuntu-latest
+    # Pinned while ubuntu-latest moves from 24.04 to 26.04 (Oct–Nov 2026).
+    # Cypress 12.6.0 is the version locked in this repo.
+    runs-on: ubuntu-24.04
 
     steps:
-      - name: Checkout código
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: 'npm'
+          cache: npm
 
-      - name: Instalar dependências
+      - name: Install dependencies
         run: npm ci
 
-      - name: Executar testes Cypress (Chrome)
+      # The app under test is the deployed site. baseUrl is set in cypress.config.js.
+      # This repo has no application server to start.
+      - name: Run Cypress headless (Chrome)
         uses: cypress-io/github-action@v6
         with:
+          install: false
           browser: chrome
           headed: false
 
-      - name: Upload screenshots (apenas em falhas)
+      - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: cypress-screenshots
           path: cypress/screenshots
+          if-no-files-found: ignore
           retention-days: 7
 
-      - name: Upload relatório mochawesome
+      - name: Upload Mochawesome report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: cypress-report
           path: cypress/reports
+          if-no-files-found: warn
           retention-days: 7
